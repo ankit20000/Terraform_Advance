@@ -40,6 +40,9 @@ jobs:
       - name: terraform fmt check
         run: terraform -chdir=${{ env.TF_ENV_DIR }} fmt -check -recursive
 
+      - name: verify pinned provider versions
+        run: bash ./scripts/verify-provider-versions.sh
+
       - name: terraform init
         run: terraform -chdir=${{ env.TF_ENV_DIR }} init -input=false
 

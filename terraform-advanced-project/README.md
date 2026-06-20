@@ -35,6 +35,13 @@ terraform plan
 terraform apply
 ```
 
+## Provider version policy
+
+- The AWS provider is pinned in each environment under `envs/*/backend.tf` using `required_providers`.
+- Current approved provider version is `hashicorp/aws` `~> 5.0`.
+- Changes to the provider version must be made intentionally, reviewed by the team, and validated in CI.
+- A repository-level guard script checks all environment files on every pull request to ensure the provider version stays pinned.
+
 ## Notes
 
 - All resource names/ARNs are illustrative placeholders — replace
