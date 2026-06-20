@@ -1,0 +1,82 @@
+name: Terraform CI/CD (OIDC)
+
+on:
+  pull_request:
+    paths:
+      - "envs/**"
+      - "modules/**"
+  push:
+    branches: [main]
+    paths:
+      - "envs/**"
+      - "modules/**"
+
+permissions:
+  id-token: write   # required to mint the OIDC token
+  contents: read
+  pull-requests: write
+
+env:
+  TF_ENV_DIR: envs/dev
+  AWS_REGION: us-east-1
+
+jobs:
+  plan:
+    name: terraform plan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC (no access keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/github-actions-terraform-plan
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: terraform fmt check
+        run: terraform -chdir=${{ env.TF_ENV_DIR }} fmt -check -recursive
+
+      - name: terraform init
+        run: terraform -chdir=${{ env.TF_ENV_DIR }} init -input=false
+
+      - name: terraform validate
+        run: terraform -chdir=${{ env.TF_ENV_DIR }} validate
+
+      - name: terraform plan
+        id: plan
+        run: terraform -chdir=${{ env.TF_ENV_DIR }} plan -input=false -no-color -out=tfplan
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-dev
+          path: ${{ env.TF_ENV_DIR }}/tfplan
+
+  apply:
+    name: terraform apply
+    needs: plan
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production   # requires manual approval via GitHub Environments
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC (elevated apply role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/github-actions-terraform-apply
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: terraform init
+        run: terraform -chdir=${{ env.TF_ENV_DIR }} init -input=false
+
+      - name: terraform apply
+        run: terraform -chdir=${{ env.TF_ENV_DIR }} apply -input=false -auto-approve

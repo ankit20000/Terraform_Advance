@@ -1,0 +1,25 @@
+---
+- name: Configure application servers post-provision
+  hosts: webservers
+  become: true
+  vars:
+    app_env: "{{ lookup('env', 'APP_ENV') | default('dev', true) }}"
+
+  tasks:
+    - name: Ensure app directory exists
+      file:
+        path: /opt/app
+        state: directory
+        mode: "0755"
+
+    - name: Template environment file
+      template:
+        src: app.env.j2
+        dest: /opt/app/.env
+        mode: "0600"
+
+    - name: Restart application service
+      systemd:
+        name: app.service
+        state: restarted
+        enabled: true

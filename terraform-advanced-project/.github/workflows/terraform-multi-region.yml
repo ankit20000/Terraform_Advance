@@ -1,0 +1,97 @@
+name: Terraform Multi-Region CI/CD (OIDC)
+
+on:
+  pull_request:
+    paths:
+      - "envs/**"
+      - "modules/**"
+  push:
+    branches: [main]
+    paths:
+      - "envs/**"
+      - "modules/**"
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  plan:
+    name: Plan - ${{ matrix.env }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - env: dev
+            env_dir: envs/dev
+            aws_region: us-east-1
+          - env: dev-secondary
+            env_dir: envs/dev-secondary
+            aws_region: us-west-2
+          - env: route53-dr
+            env_dir: envs/route53-dr
+            aws_region: us-east-1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/github-actions-terraform-plan
+          aws-region: ${{ matrix.aws_region }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Format check
+        run: terraform -chdir=${{ matrix.env_dir }} fmt -check -recursive
+
+      - name: Terraform init
+        run: terraform -chdir=${{ matrix.env_dir }} init -input=false
+
+      - name: Terraform validate
+        run: terraform -chdir=${{ matrix.env_dir }} validate
+
+      - name: Terraform plan
+        run: terraform -chdir=${{ matrix.env_dir }} plan -input=false -no-color
+
+  apply:
+    name: Apply - ${{ matrix.env }}
+    needs: plan
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    strategy:
+      matrix:
+        include:
+          - env: dev
+            env_dir: envs/dev
+            aws_region: us-east-1
+          - env: dev-secondary
+            env_dir: envs/dev-secondary
+            aws_region: us-west-2
+          - env: route53-dr
+            env_dir: envs/route53-dr
+            aws_region: us-east-1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/github-actions-terraform-apply
+          aws-region: ${{ matrix.aws_region }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Terraform init
+        run: terraform -chdir=${{ matrix.env_dir }} init -input=false
+
+      - name: Terraform apply
+        run: terraform -chdir=${{ matrix.env_dir }} apply -input=false -auto-approve
