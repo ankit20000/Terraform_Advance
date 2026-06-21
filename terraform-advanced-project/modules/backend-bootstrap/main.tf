@@ -9,20 +9,22 @@ terraform {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 5.0"
+
     }
   }
 }
-
 provider "aws" {
   region = var.aws_region
+
 }
+
 
 resource "aws_s3_bucket" "tf_state" {
   bucket = var.state_bucket_name
 
-  lifecycle {
-    prevent_destroy = true
-  }
+  # lifecycle {
+  #   prevent_destroy = true
+  # }
 
   tags = {
     Name      = "terraform-state"

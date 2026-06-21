@@ -1,0 +1,17 @@
+# Ignore Terraform local state and plugin cache
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.backup
+*.tfstate
+*.tfstate.backup
+
+# Ignore local override and credential files
+*.tfvars
+*.tfvars.*
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore editor and OS files
+.DS_Store

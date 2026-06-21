@@ -1,0 +1,11 @@
+# Ignore Terraform local state and plugin cache
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Ignore local variables files
+*.tfvars
+*.tfvars.*
+
+# Ignore editor and OS files
+.DS_Store
