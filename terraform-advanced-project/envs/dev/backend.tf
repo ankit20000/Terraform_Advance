@@ -2,7 +2,7 @@ terraform {
   required_version = ">= 1.6.0"
 
   backend "s3" {
-    bucket         = "github-terraform-bucket-advance-env"
+    bucket         = "terrafrom-backedn-class-dev-ankit"
     key            = "envs/dev/terraform.tfstate"
     region         = "ap-south-1"
     # dynamodb_table = "terraform-state-lock"
